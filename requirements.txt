@@ -1,4 +1,4 @@
-tensorflow==2.11.0
+tensorflow==2.16.1  # or the latest available version
 streamlit==1.17.0
 Pillow==9.0.1
 tensorflow-datasets==4.6.0
