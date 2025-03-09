@@ -1,5 +1,3 @@
-
-
 # CNN Bias Demonstration
 
 This Streamlit application demonstrates how a Convolutional Neural Network (CNN) can be trained on different datasets, showcasing bias when the network is exposed to different types of data. It allows users to:
@@ -23,7 +21,7 @@ You can install the required dependencies using the following command:
 
 ```bash
 pip install -r requirements.txt
-
+```
 ## How to Run
 
 ### Clone the repository:
@@ -31,16 +29,19 @@ pip install -r requirements.txt
 ```bash
 git clone <repository_url>
 cd <repository_name>
-
-
-## Run the Streamlit app
+```
+### Run the Streamlit app
 
 After installing the required dependencies, you can run the app using Streamlit by executing:
 
 ```bash
 streamlit run app.py
-
+```
 Open your browser and go to http://localhost:8501 to use the application.
+
+
+
+This part allows you to run the Streamlit app after setting up the dependencies and provides the link to access the application in the browser.
 
 ## Functionality
 
@@ -88,22 +89,24 @@ The CNN model consists of the following layers:
 
 The model's performance is evaluated using **accuracy** and **validation loss** during training. A "success" message is shown when training is completed. If a model is already trained, it can be loaded for predictions on new images.
 
+
 ## File Structure
 
-. ├── app.py # Main Streamlit app script ├── models/ # Directory to store trained models │ ├── cnn_numbers.h5 # Saved model for 'Numbers' dataset │ ├── cnn_shapes.h5 # Saved model for 'Shapes' dataset │ └── cnn_alphabets.h5 # Saved model for 'Alphabets' dataset └── requirements.txt # File containing the required Python packages
+```plaintext
+.
+├── app.py               # Main Streamlit app script
+├── models/              # Directory to store trained models
+│   ├── cnn_numbers.h5   # Saved model for 'Numbers' dataset
+│   ├── cnn_shapes.h5    # Saved model for 'Shapes' dataset
+│   └── cnn_alphabets.h5 # Saved model for 'Alphabets' dataset
+└── requirements.txt     # File containing the required Python packages
 
-
+```
 ---
 
 ## License
 
 This project is licensed under the **MIT License** - see the LICENSE file for details.
 
----
 
-## Acknowledgments
-
-- **MNIST Dataset**
-- **QuickDraw Dataset**
-- **EMNIST Dataset**
 
