@@ -20,14 +20,13 @@ else:
 def load_model(model_path):
     return keras.models.load_model(model_path)
 
-# Define class names for each dataset
+# Define class names for numbers (0-6) and alphabets (A-M)
 class_names_map = {
-    "Numbers": [str(i) for i in range(7)],  # "0" to "6"
-    "Shapes": ["Circle", "Square", "Triangle", "Star", "Heart", "Diamond", "Pentagon", "Hexagon", "Octagon", "Cross"],
-    "Alphabets": [chr(i) for i in range(65, 91)]  # "A" to "Z"
+    "Numbers": [str(i) for i in range(7)],  # 0 to 6
+    "Alphabets": [chr(i) for i in range(65, 78)]  # A-M (65 to 77 ASCII)
 }
 
-# Efficient dataset loading using TensorFlow datasets
+# Load Numbers dataset (0-6)
 @st.cache_data
 def load_numbers():
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
@@ -41,23 +40,7 @@ def load_numbers():
     mask_train, mask_test = y_train < 7, y_test < 7
     return x_train[mask_train], y_train[mask_train], x_test[mask_test], y_test[mask_test]
 
-@st.cache_data
-def load_shapes():
-    ds = tfds.load('quickdraw_bitmap', split='train', as_supervised=False)
-    ds = ds.shuffle(100000).take(50000)
-    images, labels = [], []
-
-    for example in ds:
-        img = example['image']
-        label = example['label']
-
-        img_resized = tf.image.resize(img, (28, 28)).numpy().astype('float32') / 255.0
-        images.append(img_resized)
-        labels.append(label.numpy())
-
-    labels = np.clip(np.array(labels), 0, 9)  # Ensure labels are within 0-9 range
-    return np.expand_dims(np.array(images), axis=-1), labels  # Ensure (28,28,1)
-
+# Load Alphabets dataset (A-M)
 @st.cache_data
 def load_alphabets():
     ds = tfds.load('emnist/letters', split='train', as_supervised=False)
@@ -68,7 +51,7 @@ def load_alphabets():
         img = example['image']
         label = example['label']
 
-        # Rotate 90° and flip horizontally to correct orientation
+        # Rotate and flip to correct orientation
         img = tf.image.rot90(img)
         img = tf.image.flip_left_right(img)
 
@@ -76,7 +59,10 @@ def load_alphabets():
         images.append(img_resized)
         labels.append(label.numpy() - 1)  # Adjust label range to 0-25
 
-    return np.expand_dims(np.array(images), axis=-1), np.array(labels)  # Ensure (28,28,1)
+    # Keep only letters A-M (indices 0-12)
+    images, labels = np.array(images), np.array(labels)
+    mask = labels < 13
+    return np.expand_dims(images[mask], axis=-1), labels[mask]
 
 # Data augmentation for robustness
 data_augmentation = keras.Sequential([
@@ -114,17 +100,15 @@ def preprocess_uploaded_image(uploaded_image):
 
 # Main Streamlit interface
 st.title("CNN Bias Demonstration")
-dataset_option = st.selectbox("Select Dataset for Training", ["Numbers", "Shapes", "Alphabets"])
+dataset_option = st.selectbox("Select Dataset for Training", ["Numbers", "Alphabets"])
 
-# Define number of classes per dataset
-num_classes_map = {"Numbers": 7, "Shapes": 10, "Alphabets": 26}
+# Define number of classes
+num_classes_map = {"Numbers": 7, "Alphabets": 13}
 
 if st.button("Train Model"):
     with tf.device('/GPU:0' if physical_devices else '/CPU:0'):
         if dataset_option == "Numbers":
             x_train, y_train, x_test, y_test = load_numbers()
-        elif dataset_option == "Shapes":
-            x_train, y_train = load_shapes()
         else:
             x_train, y_train = load_alphabets()
 
@@ -139,19 +123,17 @@ if st.button("Train Model"):
         model.save(model_path)
         st.success("Training Completed!")
 
-# Upload and compare images
-st.subheader("Upload Your Own Image for Comparison")
+# Upload and classify images
+st.subheader("Upload Your Own Image for Classification")
 uploaded_image = st.file_uploader("Choose an image...", type=["png", "jpg", "jpeg"])
 
 if uploaded_image:
     st.image(uploaded_image, caption="Uploaded Image", use_column_width=True)
     st.write("Classifying the uploaded image...")
 
-    # Preprocess and predict
     img_array = preprocess_uploaded_image(uploaded_image)
     model_path = f"models/cnn_{dataset_option.lower()}.h5"
 
-    # If model is already saved, load it, else train a new one
     if os.path.exists(model_path):
         model = load_model(model_path)
     else:
@@ -159,23 +141,23 @@ if uploaded_image:
         st.stop()
 
     predictions = model.predict(img_array)
-    predicted_class = np.argmax(predictions, axis=1)[0]
-    predicted_prob = np.max(predictions) * 100
-
-    # Get class name
+    
+    # Get class names
     class_names = class_names_map[dataset_option]
 
-    # Adjust for Alphabets (Add 1 back to predicted class)
-    if dataset_option == "Alphabets":
-        predicted_class += 1
+    # Ensure predictions match expected classes
+    if len(predictions[0]) == len(class_names):
+        predicted_class = np.argmax(predictions, axis=1)[0]
+        predicted_prob = np.max(predictions) * 100
+        predicted_class_name = class_names[predicted_class]  
 
-    predicted_class_name = class_names[predicted_class]  # Adjust back to 0-indexed class names
+        st.write(f"Predicted Class: **{predicted_class_name}**")
+        st.write(f"Confidence: **{predicted_prob:.2f}%**")
 
-    st.write(f"Predicted Class: **{predicted_class_name}**")
-    st.write(f"Confidence: **{predicted_prob:.2f}%**")
-
-    # Display top 3 predictions
-    st.write("Class probabilities:")
-    sorted_indices = np.argsort(predictions[0])[::-1][:3]
-    for i in sorted_indices:
-        st.write(f"**{class_names[i]}**: {predictions[0][i] * 100:.2f}%")
+        # Display top 3 predictions
+        st.write("Class probabilities:")
+        sorted_indices = np.argsort(predictions[0])[::-1][:3]
+        for i, prob in zip(sorted_indices, predictions[0][sorted_indices]):
+            st.write(f"**{class_names[i]}**: {prob * 100:.2f}%")
+    else:
+        st.error(f"Mismatch: Model output ({len(predictions[0])}) vs. expected classes ({len(class_names)})")
