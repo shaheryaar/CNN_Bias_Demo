@@ -8,26 +8,27 @@ This Streamlit application demonstrates how a Convolutional Neural Network (CNN)
 
 ## Requirements
 
-- Python 3.x
-- TensorFlow 2.x
-- Streamlit
-- PIL (Pillow)
-- TensorFlow Datasets
-- NumPy
+numpy
+pillow
+tensorflow==2.19.0
+  # or latest stable, CPU version
+tensorflow-datasets
+streamlit
+
 
 ### Install Dependencies
 
 You can install the required dependencies using the following command:
 
 ```bash
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 ## How to Run
 
 ### Clone the repository:
 
 ```bash
-git clone <repository_url>
+git clone https://github.com/shaheryaar/CNN_Bias_Demo.git
 cd <repository_name>
 ```
 ### Run the Streamlit app
@@ -35,7 +36,7 @@ cd <repository_name>
 After installing the required dependencies, you can run the app using Streamlit by executing:
 
 ```bash
-streamlit run app.py
+python -m streamlit run cnn_bias_demo.py  
 ```
 Open your browser and go to http://localhost:8501 to use the application.
 
