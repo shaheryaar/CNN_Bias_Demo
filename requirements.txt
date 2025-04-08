@@ -1,5 +1,6 @@
-tensorflow==2.16.1  # or the latest available version
-streamlit==1.17.0
-Pillow==9.0.1
-tensorflow-datasets==4.6.0
-numpy==1.23.1
+numpy
+pillow
+tensorflow==2.19.0
+  # or latest stable, CPU version
+tensorflow-datasets
+streamlit
