@@ -4,3 +4,4 @@ tensorflow==2.19.0
   # or latest stable, CPU version
 tensorflow-datasets
 streamlit
+matplotlib
