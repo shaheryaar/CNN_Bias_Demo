@@ -49,9 +49,7 @@ This part allows you to run the Streamlit app after setting up the dependencies 
 
 You can choose from three datasets to train the CNN:
 
-- **Numbers**: Uses the MNIST dataset (digits 0-6).
-- **Shapes**: Uses the QuickDraw dataset with simple shapes (Circle, Square, Triangle, etc.).
-- **Alphabets**: Uses the EMNIST dataset for letters (A-Z).
+- **Numbers**: Uses the MNIST dataset (digits 0-9).
 
 ### Training the Model
 
