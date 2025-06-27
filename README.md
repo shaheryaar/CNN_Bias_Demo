@@ -15,6 +15,11 @@ tensorflow==2.19.0
 tensorflow-datasets
 streamlit
 
+## Activate the Environment
+
+```bash
+.\cnn_bias_demo\Scripts\activate
+```
 
 ### Install Dependencies
 
@@ -25,12 +30,6 @@ pip3 install -r requirements.txt
 ```
 ## How to Run
 
-### Clone the repository:
-
-```bash
-git clone https://github.com/shaheryaar/CNN_Bias_Demo.git
-cd <repository_name>
-```
 ### Run the Streamlit app
 
 After installing the required dependencies, you can run the app using Streamlit by executing:
