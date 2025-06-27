@@ -11,7 +11,6 @@ This Streamlit application demonstrates how a Convolutional Neural Network (CNN)
 numpy
 pillow
 tensorflow==2.19.0
-  # or latest stable, CPU version
 tensorflow-datasets
 streamlit
 
