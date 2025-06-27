@@ -13,6 +13,11 @@ pillow
 tensorflow==2.19.0
 tensorflow-datasets
 streamlit
+## Create the Environment
+
+```bash
+python -m venv cnn_bias_demo
+```
 
 ## Activate the Environment
 
