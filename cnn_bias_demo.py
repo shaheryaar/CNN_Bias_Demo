@@ -10,18 +10,21 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  CPU-only
+#  CPU setup only
 # ─────────────────────────────────────────────────────────────────────────────
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"  # Force CPU only
 st.info("Forcing CPU-only training. GPU is disabled.")
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Load/save helpers
+#  Helpers to save / load models
 # ─────────────────────────────────────────────────────────────────────────────
 @st.cache_resource
 def load_model_from_path(model_path: str):
     return keras.models.load_model(model_path)
 
+# ─────────────────────────────────────────────────────────────────────────────
+#  Load MNIST
+# ─────────────────────────────────────────────────────────────────────────────
 @st.cache_data(show_spinner=False)
 def load_mnist_data():
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
@@ -42,11 +45,12 @@ def get_augmentation_layer():
     ], name="augmentation")
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  LeNet-5 architecture
+#  LeNet-5 for Digits
 # ─────────────────────────────────────────────────────────────────────────────
 def build_lenet5(num_classes: int):
     inputs = keras.Input(shape=(28, 28, 1))
-    x = layers.Conv2D(6, 5, activation="tanh", padding="same")(inputs)
+    x = get_augmentation_layer()(inputs)
+    x = layers.Conv2D(6, 5, activation="tanh", padding="same")(x)
     x = layers.AveragePooling2D(pool_size=(2, 2))(x)
     x = layers.Conv2D(16, 5, activation="tanh")(x)
     x = layers.AveragePooling2D(pool_size=(2, 2))(x)
@@ -56,10 +60,11 @@ def build_lenet5(num_classes: int):
     outputs = layers.Dense(num_classes, activation="softmax", dtype="float32")(x)
     model = keras.Model(inputs, outputs, name="lenet5")
     model.compile(optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"])
+    model(tf.zeros((1, 28, 28, 1)))  # Ensure model is built immediately
     return model
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Image preprocessing
+#  Preprocessing
 # ─────────────────────────────────────────────────────────────────────────────
 def preprocess_digit_image(uploaded_image):
     pil = Image.open(uploaded_image).convert("L").resize((28, 28))
@@ -71,7 +76,7 @@ def preprocess_digit_image(uploaded_image):
     return np.expand_dims(arr, axis=0), pil
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Bar chart visualization
+#  Prediction bar plot
 # ─────────────────────────────────────────────────────────────────────────────
 def plot_prediction_probs(preds):
     fig, ax = plt.subplots()
@@ -79,7 +84,6 @@ def plot_prediction_probs(preds):
     pred_idx = int(np.argmax(preds[0]))
     conf = preds[0][pred_idx] * 100
     bars[pred_idx].set_color("dodgerblue")
-
     ax.set_xticks(range(len(preds[0])))
     ax.set_xticklabels([str(i) for i in range(len(preds[0]))])
     ax.set_xlabel("Digit")
@@ -89,15 +93,12 @@ def plot_prediction_probs(preds):
     st.pyplot(fig)
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Streamlit App UI
+#  Streamlit UI
 # ─────────────────────────────────────────────────────────────────────────────
 st.title("LeNet-5 Digit Classifier (MNIST 0–9)")
 epochs = st.sidebar.slider("Training Epochs", 1, 20, 5)
-num_classes = st.sidebar.slider("Number of Digits to Train (0 to N-1)", 2, 10, 10)
-
-if num_classes < 10:
-    st.warning(f"⚠️ Model will only recognize digits 0 to {num_classes - 1}. "
-               f"Testing with digits like 8 or 9 may result in misclassification.")
+num_classes = st.sidebar.slider("Number of Digits to Train (0 to N-1)", 1, 10, 10)
+model_path = f"models/lenet5_digits_{num_classes}.h5"
 
 st.header("▶️ Train / Evaluate Digit-Only Model (MNIST 0–9)")
 if st.button("Train Digit Model"):
@@ -112,36 +113,23 @@ if st.button("Train Digit Model"):
     split = int(0.9 * len(x_d))
     x_train, y_train = x_d[:split], y_d[:split]
     x_val, y_val = x_d[split:], y_d[split:]
-
-    with st.spinner(f"Training for {epochs} epochs on digits 0 to {num_classes - 1}..."):
+    with st.spinner(f"Training for {epochs} epochs on {num_classes} classes..."):
         model = build_lenet5(num_classes)
-        augment = get_augmentation_layer()
-        model.fit(
-            augment(x_train), y_train,
-            validation_data=(x_val, y_val),
-            epochs=epochs,
-            batch_size=128,
-            verbose=1
-        )
-
+        model.fit(x_train, y_train, validation_data=(x_val, y_val), epochs=epochs, batch_size=128, verbose=1)
     os.makedirs("models", exist_ok=True)
-    model.save("models/lenet5_digits.h5")
-    st.success("✅ Model trained and saved as `models/lenet5_digits.h5`.")
+    model.save(model_path)
+    st.success(f"✅ Digit model trained and saved to `{model_path}`.")
 
-# ─────────────────────────────────────────────────────────────────────────────
-#  Inference Section
-# ─────────────────────────────────────────────────────────────────────────────
-uploaded = st.file_uploader("📤 Upload a digit image (0–9)", type=["png", "jpg", "jpeg"])
+uploaded = st.file_uploader("Upload a digit image (0–9)", type=["png", "jpg", "jpeg"])
 if uploaded:
     arr, pil_img = preprocess_digit_image(uploaded)
     st.image(pil_img, caption="Uploaded Image", use_column_width=True)
-
-    if not os.path.exists("models/lenet5_digits.h5"):
-        st.error("❌ No trained model found. Please train the model first.")
+    if not os.path.exists(model_path):
+        st.error("Model not found. Train first.")
         st.stop()
-
-    model = load_model_from_path("models/lenet5_digits.h5")
-    _ = model(arr)  # Force model to build
-
+    model = load_model_from_path(model_path)
+    _ = model(arr, training=False)
     preds = model.predict(arr)
+    st.markdown(f"📦 Loaded Model: `{model_path}`")
+    st.markdown(f"✅ Model trained to classify digits from `0` to `{num_classes - 1}`.")
     plot_prediction_probs(preds)
